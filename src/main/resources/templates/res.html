@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="/webjars/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <!-- 腾讯防水墙客户端 -->
+    <script src="https://ssl.captcha.qq.com/TCaptcha.js"></script>
+</head>
+<body>
+    <div id="app" style="width: 30%">
+        <el-form :model="ruleForm" status-icon :rules="rules" ref="ruleForm" label-width="100px">
+            <el-form-item label="账号" prop="name">
+                <el-input v-model="ruleForm.name"></el-input>
+            </el-form-item>
+            <el-form-item label="密码" prop="pass">
+                <el-input type="password" v-model="ruleForm.pass"></el-input>
+            </el-form-item>
+            <el-form-item label="确认密码" prop="checkPass">
+                <el-input type="password" v-model="ruleForm.checkPass"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="submitForm('ruleForm')">注册</el-button>
+                <el-button @click="resetForm('ruleForm')">重置</el-button>
+            </el-form-item>
+        </el-form>
+    </div>
+    <script type="text/javascript">
+        new Vue({
+            el: '#app',
+            data() {
+                var validateName = (rule, value, callback) => {
+                    if (value === '') {
+                        return callback(new Error('请输入账号!'));
+                    }
+                    setTimeout(() => {
+                        callback();
+                    }, 1000);
+                };
+                var validatePass = (rule, value, callback) => {
+                    if (value === '') {
+                        callback(new Error('请输入密码!'));
+                    } else {
+                        if (this.ruleForm.checkPass !== '') {
+                            this.$refs.ruleForm.validateField('checkPass');
+                        }
+                        callback();
+                    }
+                };
+                var validatePass2 = (rule, value, callback) => {
+                    if (value === '') {
+                        callback(new Error('请再次输入密码!'));
+                    } else if (value !== this.ruleForm.pass) {
+                        callback(new Error('两次输入密码不一致!'));
+                    } else {
+                        callback();
+                    }
+                };
+                return {
+                    ruleForm: {
+                        name: '',
+                        pass: '',
+                        checkPass: ''
+                    },
+                    rules: {
+                        name: [
+                            { required: true, validator: validateName, trigger: 'blur' }
+                        ],
+                        pass: [
+                            { required: true, validator: validatePass, trigger: 'blur' }
+                        ],
+                        checkPass: [
+                            {required: true, validator: validatePass2, trigger: 'blur' }
+                        ]
+                    }
+                };
+            },
+            methods: {
+                submitForm(formName) {
+                    this.$refs[formName].validate((valid) => {
+                        if (valid) {
+                            this.yanzhengma();
+                        } else {
+                            this.$message({
+                                showClose: true,
+                                message: '请规范填写!',
+                                type: 'warning'
+                            });
+                            return false;
+                        }
+                    });
+                },
+                resetForm(formName) {
+                    this.$refs[formName].resetFields();
+                },
+                yanzhengma(){
+                    var _this = this;
+                    // 直接生成一个验证码对象
+                    var captcha = new TencentCaptcha('2048449315', function(res) {
+                        /* callback */
+                        //console.log(res);
+                        $.ajax({
+                           "url": "/tijiaoyanzhengma",
+                           "type": "post",
+                           "data": {"ticket": res.ticket, "rand": res.randstr},
+                            "success": function (data) {
+                                //console.log(data);
+                                if (data === 1){
+                                    _this.$message({
+                                        showClose: true,
+                                        message: '恭喜注册成功,三秒后自动跳转主页!',
+                                        type: 'success'
+                                    });
+                                    setTimeout(() => {
+                                        window.location.href = "https://www.binzikeji.com";
+                                    }, 3000);
+                                } else {
+                                    _this.$message({
+                                        showClose: true,
+                                        message: '注册失败,请联系客服!',
+                                        type: 'error'
+                                    });
+                                }
+                            }
+                        });
+                    });
+                    captcha.show(); // 显示验证码
+                }
+            }
+        });
+    </script>
+</body>
+</html>
